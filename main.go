@@ -18,19 +18,17 @@ func collectData(ctx context.Context, rpcClient *tmClient.HTTP, prevBlock int64)
 	}
 	latestBlockHeight := status.SyncInfo.LatestBlockHeight
 	for i := prevBlock + 1; i < latestBlockHeight; i++ {
-		// fmt.Println(i)
 		block, err := rpcClient.Block(context.Background(), &i)
 		if err != nil {
 			return i, err
 		}
-		time.Sleep(500 * time.Millisecond)
-
+		time.Sleep(250 * time.Millisecond)
 		var parsedBlock models.Block
 		parsedBlock.Height = block.Block.Height
 		parsedBlock.Timestamp = block.Block.Header.Time
+		parsedBlock.Txs = block.Block.Txs
 		parsedBlock.TxCount = len(block.Block.Txs)
 		parsedBlock.Proposer = block.Block.ProposerAddress.String()
-		// fmt.Println(len(block.Block.Txs))
 		validators := make([]string, 0)
 		for _, val := range block.Block.LastCommit.Signatures {
 			validators = append(validators, val.ValidatorAddress.String())
@@ -53,6 +51,7 @@ func collectData(ctx context.Context, rpcClient *tmClient.HTTP, prevBlock int64)
 			}
 		}
 		parsedBlock.Peers = peers
+
 		err = models.SaveBlockData(parsedBlock)
 		if err != nil {
 			return i, err
@@ -63,10 +62,19 @@ func collectData(ctx context.Context, rpcClient *tmClient.HTTP, prevBlock int64)
 
 func main() {
 	models.NewDB()
-	r := router.Router()
-	http.ListenAndServe(":9000", r)
+	go func() {
+		r := router.Router()
+		err := http.ListenAndServe(":9000", r)
+		if err != nil {
+			fmt.Println("Error establishing connection:", err)
+		}
+	}()
 
-	rpcClient, _ := tmClient.New("https://rpc.osmosis.zone/")
+	rpcClient, err := tmClient.New("https://rpc.osmosis.zone/")
+
+	if err != nil {
+		fmt.Println("Error establishing client:", err)
+	}
 	ctx := context.Background()
 	latestHeight, err := models.GetLatestHeight()
 	if err != nil {

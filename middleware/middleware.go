@@ -37,7 +37,10 @@ func GetTransactionsInPastNBlocks(w http.ResponseWriter,
 		fmt.Println("Must need n")
 		w.WriteHeader(400)
 	}
-	n, _ := strconv.Atoi(nVars[0])
+	n, err := strconv.Atoi(nVars[0])
+	if err != nil {
+		w.WriteHeader(400)
+	}
 	totalTxs, err := models.GetTransactionsInPastNBlocks(n)
 	if err != nil {
 		w.WriteHeader(400)
@@ -58,7 +61,10 @@ func GetNPeersOverNBlocks(w http.ResponseWriter,
 		w.WriteHeader(400)
 	}
 
-	n, _ := strconv.Atoi(nVars[0])
+	n, err := strconv.Atoi(nVars[0])
+	if err != nil {
+		w.WriteHeader(400)
+	}
 	topNPeers, err := models.GetTopNPeersByScore(n)
 	if err != nil {
 		w.WriteHeader(400)
