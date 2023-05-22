@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/tendermint/tendermint/types"
+)
 
 type PeerScore struct {
 	Address string
@@ -8,10 +12,11 @@ type PeerScore struct {
 }
 
 type Block struct {
-	Height     int64       `json:"height"`
-	Timestamp  time.Time   `json:"timestamp"`
-	TxCount    int         `json:"tx_count"`
-	Proposer   string      `json:"proposer"`
-	Validators []string    `json:"validators"`
-	Peers      []PeerScore `json:"peers"`
+	Height     int64       `json:"height,omitempty"`
+	Timestamp  time.Time   `json:"timestamp,omitempty"`
+	Txs        []types.Tx  `json:"txs,omitempty"`
+	TxCount    int         `json:"tx_count,omitempty"`
+	Proposer   string      `json:"proposer,omitempty"`
+	Validators []string    `json:"validators,omitempty"`
+	Peers      []PeerScore `json:"peers,omitempty"`
 }

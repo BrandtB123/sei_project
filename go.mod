@@ -2,11 +2,13 @@ module sei_project
 
 go 1.20
 
-require github.com/tendermint/tendermint v0.35.9
+require (
+	github.com/go-pg/pg v8.0.7+incompatible
+	github.com/tendermint/tendermint v0.35.9
+)
 
 require (
 	github.com/btcsuite/btcd v0.22.1 // indirect
-	github.com/go-pg/pg v8.0.7+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect
