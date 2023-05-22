@@ -5,20 +5,63 @@ import (
 	"fmt"
 	"net/http"
 	"sei_project/models"
+	"strconv"
 )
 
-func GetValidatorBlocks(w http.ResponseWriter,
+func GetProposerBlocks(w http.ResponseWriter,
 	r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET")
 	w.Header().Set("Access-Control-Allow-Headers", "content-type")
 	vars := r.URL.Query()
-	validator, ok := vars["validator"]
+	proposer, ok := vars["proposer"]
+	if !ok {
+		fmt.Println("Must need validator")
+		w.WriteHeader(400)
+	}
+	blockHeights, err := models.GetProposedBlocksByValidator(proposer[0])
+	if err != nil {
+		w.WriteHeader(400)
+	}
+	json.NewEncoder(w).Encode(blockHeights)
+}
+
+func GetTransactionsInPastNBlocks(w http.ResponseWriter,
+	r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET")
+	w.Header().Set("Access-Control-Allow-Headers", "content-type")
+	vars := r.URL.Query()
+	nVars, ok := vars["n"]
+	if !ok {
+		fmt.Println("Must need n")
+		w.WriteHeader(400)
+	}
+	n, _ := strconv.Atoi(nVars[0])
+	totalTxs, err := models.GetTransactionsInPastNBlocks(n)
+	if err != nil {
+		w.WriteHeader(400)
+	}
+
+	json.NewEncoder(w).Encode(totalTxs)
+}
+
+func GetNPeersOverNBlocks(w http.ResponseWriter,
+	r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET")
+	w.Header().Set("Access-Control-Allow-Headers", "content-type")
+	vars := r.URL.Query()
+	nVars, ok := vars["n"]
 	if !ok {
 		fmt.Println("Must need validator")
 		w.WriteHeader(400)
 	}
 
-	var blocks []models.Block
-	json.NewEncoder(w).Encode(proratedResponse)
+	n, _ := strconv.Atoi(nVars[0])
+	topNPeers, err := models.GetTopNPeersByScore(n)
+	if err != nil {
+		w.WriteHeader(400)
+	}
+	json.NewEncoder(w).Encode(topNPeers)
 }

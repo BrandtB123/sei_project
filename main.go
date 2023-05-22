@@ -3,42 +3,25 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sei_project/models"
+	"sei_project/router"
 	"time"
 
-	"github.com/go-pg/pg"
 	tmClient "github.com/tendermint/tendermint/rpc/client/http"
 )
 
-func saveBlockData(db *pg.DB, block models.Block) error {
-	_, err := db.Model(&block).OnConflict("(height) DO UPDATE").Set("tx_count = ?tx_count").Insert()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func getLatestHeight(db *pg.DB) (int64, error) {
-	var block models.Block
-	err := db.Model(&block).Order("height DESC").Limit(1).Select()
-	if err != nil {
-		return 0, fmt.Errorf("failed to retrieve the latest block height: %v", err)
-	}
-
-	return block.Height, nil
-}
-
-func collectData(ctx context.Context, rpcClient *tmClient.HTTP, db *pg.DB, prevBlock int64) error {
+func collectData(ctx context.Context, rpcClient *tmClient.HTTP, prevBlock int64) (int64, error) {
 	status, err := rpcClient.Status(ctx)
 	if err != nil {
-		return err
+		return prevBlock, err
 	}
 	latestBlockHeight := status.SyncInfo.LatestBlockHeight
-	for i := prevBlock + 1; i <= latestBlockHeight; i++ {
-		fmt.Println(i)
+	for i := prevBlock + 1; i < latestBlockHeight; i++ {
+		// fmt.Println(i)
 		block, err := rpcClient.Block(context.Background(), &i)
 		if err != nil {
-			return err
+			return i, err
 		}
 		time.Sleep(500 * time.Millisecond)
 
@@ -46,7 +29,8 @@ func collectData(ctx context.Context, rpcClient *tmClient.HTTP, db *pg.DB, prevB
 		parsedBlock.Height = block.Block.Height
 		parsedBlock.Timestamp = block.Block.Header.Time
 		parsedBlock.TxCount = len(block.Block.Txs)
-
+		parsedBlock.Proposer = block.Block.ProposerAddress.String()
+		// fmt.Println(len(block.Block.Txs))
 		validators := make([]string, 0)
 		for _, val := range block.Block.LastCommit.Signatures {
 			validators = append(validators, val.ValidatorAddress.String())
@@ -57,7 +41,7 @@ func collectData(ctx context.Context, rpcClient *tmClient.HTTP, db *pg.DB, prevB
 
 		v, err := rpcClient.Validators(ctx, &i, nil, nil)
 		if err != nil {
-			return err
+			return i, err
 		}
 
 		if v != nil {
@@ -69,33 +53,30 @@ func collectData(ctx context.Context, rpcClient *tmClient.HTTP, db *pg.DB, prevB
 			}
 		}
 		parsedBlock.Peers = peers
-		err = saveBlockData(db, parsedBlock)
+		err = models.SaveBlockData(parsedBlock)
 		if err != nil {
-			return err
+			return i, err
 		}
 	}
-	return nil
+	return latestBlockHeight, nil
 }
 
 func main() {
-	db := pg.Connect(&pg.Options{
-		Addr:     "sei-database-1.cs96vtk3gnbe.us-east-2.rds.amazonaws.com:5432",
-		User:     "postgres",
-		Password: "seipassword",
-		Database: "postgres",
-	})
+	models.NewDB()
+	r := router.Router()
+	http.ListenAndServe(":9000", r)
+
 	rpcClient, _ := tmClient.New("https://rpc.osmosis.zone/")
 	ctx := context.Background()
-	latestHeight, err := getLatestHeight(db)
+	latestHeight, err := models.GetLatestHeight()
 	if err != nil {
-		fmt.Println("error:", err)
+		latestHeight = 9737283
 	}
 	for {
-		err := collectData(ctx, rpcClient, db, latestHeight)
+		latestHeight, err = collectData(ctx, rpcClient, latestHeight)
 		if err != nil {
 			fmt.Println("Error collecting data:", err)
 		}
-
 		time.Sleep(30 * time.Second)
 	}
 
