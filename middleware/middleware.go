@@ -31,6 +31,7 @@ func GetTransactionsInPastNBlocks(w http.ResponseWriter,
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET")
 	w.Header().Set("Access-Control-Allow-Headers", "content-type")
+	fmt.Println("SUCCESS")
 	vars := r.URL.Query()
 	nVars, ok := vars["n"]
 	if !ok {

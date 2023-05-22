@@ -17,12 +17,20 @@ func collectData(ctx context.Context, rpcClient *tmClient.HTTP, prevBlock int64)
 		return prevBlock, err
 	}
 	latestBlockHeight := status.SyncInfo.LatestBlockHeight
-	for i := prevBlock + 1; i < latestBlockHeight; i++ {
+	for i := prevBlock; i < latestBlockHeight; i++ {
 		block, err := rpcClient.Block(context.Background(), &i)
-		if err != nil {
-			return i, err
+
+		for err != nil || block == nil {
+			time.Sleep(2 * time.Second)
+
+			block, err = rpcClient.Block(context.Background(), &i)
+
+			if err != nil {
+				return i, err
+			}
 		}
-		time.Sleep(250 * time.Millisecond)
+		fmt.Println(block.Block.Height)
+		time.Sleep(500 * time.Millisecond)
 		var parsedBlock models.Block
 		parsedBlock.Height = block.Block.Height
 		parsedBlock.Timestamp = block.Block.Header.Time
@@ -63,8 +71,9 @@ func collectData(ctx context.Context, rpcClient *tmClient.HTTP, prevBlock int64)
 func main() {
 	models.NewDB()
 	go func() {
+		fmt.Println("Running")
 		r := router.Router()
-		err := http.ListenAndServe(":9000", r)
+		err := http.ListenAndServe(":80", r)
 		if err != nil {
 			fmt.Println("Error establishing connection:", err)
 		}
@@ -78,7 +87,7 @@ func main() {
 	ctx := context.Background()
 	latestHeight, err := models.GetLatestHeight()
 	if err != nil {
-		latestHeight = 9737283
+		latestHeight = 9739047
 	}
 	for {
 		latestHeight, err = collectData(ctx, rpcClient, latestHeight)
