@@ -1,5 +1,6 @@
 # sei_project
 A simple indexer in Golang, ran on AWS with a Postgres RDS backend
+Domain: http://ec2-18-218-245-88.us-east-2.compute.amazonaws.com/
 
 # APIs
 
