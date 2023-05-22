@@ -8,6 +8,8 @@ import (
 func Router() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api/calculateAllocations", middleware.Api())
+	mux.HandleFunc("/api/totalTxs", middleware.GetTransactionsInPastNBlocks)
+	mux.HandleFunc("/api/blocksByProposer", middleware.GetProposerBlocks)
+	mux.HandleFunc("/api/topNPeers", middleware.GetNPeersOverNBlocks)
 	return mux
 }
